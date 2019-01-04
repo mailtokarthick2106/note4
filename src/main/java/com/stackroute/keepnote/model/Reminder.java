@@ -3,6 +3,16 @@ package com.stackroute.keepnote.model;
 import java.util.Date;
 import java.util.List;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /*
  * The class "Reminder" will be acting as the data model for the Reminder Table in the database. 
  * Please note that this class is annotated with @Entity annotation. 
@@ -10,7 +20,8 @@ import java.util.List;
  * If it finds any, then it will begin the process of looking through that particular 
  * Java object to recreate it as a table in your database.
  */
-
+@Entity
+@Table(name = "Reminder")
 public class Reminder {
 	/*
 	 * This class should have seven fields
@@ -23,50 +34,110 @@ public class Reminder {
 	 * always initialized with the system date. annotate notes field with @OneToMany
 	 * and @JsonIgnore
 	 */
-
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "reminderId")
+	private int reminderId;
+	@Column(name = "reminderName")
+	private String reminderName;
+	@Column(name = "reminderDescription")
+	private String reminderDescription;
+	@Column(name = "reminderType")
+	private String reminderType;
+	@Column(name = "reminderCreatedBy")
+	private String reminderCreatedBy;
+	@Column(name = "reminderCreationDate")
+	private Date reminderCreationDate;
+	@JsonIgnore
+	@OneToMany(mappedBy="reminder")
+	private List<Note> notes;
 	public Reminder() {
 
 	}
 
-	public Reminder(int Int, String string, String string1, String string2, String string3, List<Note> list,
-			Date date) {
+	public Reminder(int reminderId, String reminderName, String reminderDescription, 
+			String reminderType, String reminderCreatedBy, List<Note> notes,
+			Date reminderCreationDate) {
+		this.reminderId=reminderId;
+		this.reminderName=reminderName;
+		this.reminderDescription=reminderDescription;
+		this.reminderType=reminderType;
+		this.reminderCreatedBy=reminderCreatedBy;
+		this.notes=notes;
+		this.reminderCreationDate=reminderCreationDate;
 	}
 
 	public int getReminderId() {
-		return 0;
+		return this.reminderId;
 
 	}
 
-	public void setReminderId(int Int) {
+	public void setReminderId(int reminderId) {
+		this.reminderId=reminderId;
 
 	}
 
-	public void setReminderName(String string) {
+	public void setReminderName(String reminderName) {
+		this.reminderName=reminderName;
 
 	}
 
 	public String getReminderDescription() {
-		return null;
+		return reminderDescription;
 	}
 
-	public void setReminderDescription(String string) {
-
-	}
-
-	public void setReminderType(String string) {
+	public void setReminderDescription(String reminderDescription) {
+		this.reminderDescription=reminderDescription;
 
 	}
 
-	public void setReminderCreationDate(Date date) {
+	public void setReminderType(String reminderType) {
+		this.reminderType=reminderType;
 
 	}
 
-	public void setReminderCreatedBy(String string) {
+	public String getReminderName() {
+		return reminderName;
+	}
+
+	public String getReminderType() {
+		return reminderType;
+	}
+
+	public String getReminderCreatedBy() {
+		return reminderCreatedBy;
+	}
+
+	public Date getReminderCreationDate() {
+		return reminderCreationDate;
+	}
+
+	public List<Note> getNotes() {
+		return notes;
+	}
+
+	public void setReminderCreationDate(Date reminderCreationDate) {
+		this.reminderCreationDate=reminderCreationDate;
 
 	}
 
-	public void setNotes(List<Note> list) {
+	public void setReminderCreatedBy(String reminderCreatedBy) {
+		this.reminderCreatedBy=reminderCreatedBy;
 
+	}
+
+	public void setNotes(List<Note> notes) {
+		this.notes=notes;
+
+	}
+	@Override
+	public boolean equals(Object obj) {
+	    if (obj == null) return false;
+	    if (!(obj instanceof Reminder))
+	        return false;
+	    if (obj == this)
+	        return true;
+	    return this.getReminderId() == ((Reminder) obj).getReminderId();
 	}
 
 }

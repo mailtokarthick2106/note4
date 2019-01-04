@@ -1,5 +1,23 @@
 package com.stackroute.keepnote.controller;
 
+import java.util.Date;
+import java.util.List;
+
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.stackroute.keepnote.exception.ReminderNotFoundException;
+import com.stackroute.keepnote.model.Reminder;
 import com.stackroute.keepnote.service.ReminderService;
 
 /*
@@ -10,13 +28,13 @@ import com.stackroute.keepnote.service.ReminderService;
  * format. Starting from Spring 4 and above, we can use @RestController annotation which 
  * is equivalent to using @Controller and @ResposeBody annotation
  */
-
+@RestController
 public class ReminderController {
 
 	/*
-	 * From the problem statement, we can understand that the application requires
-	 * us to implement five functionalities regarding reminder. They are as
-	 * following:
+	 * From the problem statement, we can understand that the application
+	 * requires us to implement five functionalities regarding reminder. They
+	 * are as following:
 	 * 
 	 * 1. Create a reminder 2. Delete a reminder 3. Update a reminder 2. Get all
 	 * reminders by userId 3. Get a specific reminder by id.
@@ -31,75 +49,174 @@ public class ReminderController {
 	 * Constructor-based autowiring) Please note that we should not create any
 	 * object using the new keyword
 	 */
+	@Autowired
+	ReminderService reminderService;
 
 	public ReminderController(ReminderService reminderService) {
+		this.reminderService = reminderService;
 
 	}
 
 	/*
 	 * Define a handler method which will create a reminder by reading the
 	 * Serialized reminder object from request body and save the reminder in
-	 * reminder table in database. Please note that the reminderId has to be unique
-	 * and the loggedIn userID should be taken as the reminderCreatedBy for the
-	 * reminder. This handler method should return any one of the status messages
-	 * basis on different situations: 1. 201(CREATED - In case of successful
-	 * creation of the reminder 2. 409(CONFLICT) - In case of duplicate reminder ID
-	 * 3. 401(UNAUTHORIZED) - If the user trying to perform the action has not
-	 * logged in.
+	 * reminder table in database. Please note that the reminderId has to be
+	 * unique and the loggedIn userID should be taken as the reminderCreatedBy
+	 * for the reminder. This handler method should return any one of the status
+	 * messages basis on different situations: 1. 201(CREATED - In case of
+	 * successful creation of the reminder 2. 409(CONFLICT) - In case of
+	 * duplicate reminder ID 3. 401(UNAUTHORIZED) - If the user trying to
+	 * perform the action has not logged in.
 	 * 
 	 * This handler method should map to the URL "/reminder" using HTTP POST
 	 * method".
 	 */
+	@PostMapping(value = "/reminder")
+	public ResponseEntity<Void> registeReminder(@RequestBody Reminder reminder) {
+		Reminder currentReminder;
+		try {
+			currentReminder = reminderService.getReminderById(reminder.getReminderId());
+			if (currentReminder != null) {
+				System.out.println("A currentReminder with " + currentReminder.getReminderId() + " already exist");
+				return new ResponseEntity<Void>(HttpStatus.CONFLICT);
+			}
+
+			boolean insertStatus = reminderService.createReminder(reminder);
+			if (!insertStatus) {
+				return new ResponseEntity<Void>(HttpStatus.UNAUTHORIZED);
+			}
+		} catch (ReminderNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return new ResponseEntity<Void>(HttpStatus.CREATED);
+	}
 
 	/*
 	 * Define a handler method which will delete a reminder from a database.
 	 * 
 	 * This handler method should return any one of the status messages basis on
-	 * different situations: 1. 200(OK) - If the reminder deleted successfully from
-	 * database. 2. 404(NOT FOUND) - If the reminder with specified reminderId is
-	 * not found. 3. 401(UNAUTHORIZED) - If the user trying to perform the action
-	 * has not logged in.
+	 * different situations: 1. 200(OK) - If the reminder deleted successfully
+	 * from database. 2. 404(NOT FOUND) - If the reminder with specified
+	 * reminderId is not found. 3. 401(UNAUTHORIZED) - If the user trying to
+	 * perform the action has not logged in.
 	 * 
-	 * This handler method should map to the URL "/reminder/{id}" using HTTP Delete
-	 * method" where "id" should be replaced by a valid reminderId without {}
+	 * This handler method should map to the URL "/reminder/{id}" using HTTP
+	 * Delete method" where "id" should be replaced by a valid reminderId
+	 * without {}
 	 */
+	@DeleteMapping("/reminder/{id}")
+	public ResponseEntity<Void> deleteReminder(@PathVariable int id) {
+		System.out.println("Fetching & Deleting category with id " + id);
+		Reminder reminder;
+		try {
+			reminder = this.reminderService.getReminderById(id);
+
+			if (reminder == null) {
+				System.out.println("Unable to delete. reminder with id " + id + " not found");
+				return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
+			}
+			boolean status = this.reminderService.deleteReminder(id);
+			if (!status) {
+				return new ResponseEntity<Void>(HttpStatus.UNAUTHORIZED);
+			}
+		} catch (ReminderNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return new ResponseEntity<Void>(HttpStatus.OK);
+
+	}
 
 	/*
-	 * Define a handler method which will update a specific reminder by reading the
-	 * Serialized object from request body and save the updated reminder details in
-	 * a reminder table in database handle ReminderNotFoundException as well. please
-	 * note that the loggedIn userID should be taken as the reminderCreatedBy for
-	 * the reminder. This handler method should return any one of the status
-	 * messages basis on different situations: 1. 200(OK) - If the reminder updated
-	 * successfully. 2. 404(NOT FOUND) - If the reminder with specified reminderId
-	 * is not found. 3. 401(UNAUTHORIZED) - If the user trying to perform the action
-	 * has not logged in.
+	 * Define a handler method which will update a specific reminder by reading
+	 * the Serialized object from request body and save the updated reminder
+	 * details in a reminder table in database handle ReminderNotFoundException
+	 * as well. please note that the loggedIn userID should be taken as the
+	 * reminderCreatedBy for the reminder. This handler method should return any
+	 * one of the status messages basis on different situations: 1. 200(OK) - If
+	 * the reminder updated successfully. 2. 404(NOT FOUND) - If the reminder
+	 * with specified reminderId is not found. 3. 401(UNAUTHORIZED) - If the
+	 * user trying to perform the action has not logged in.
 	 * 
 	 * This handler method should map to the URL "/reminder/{id}" using HTTP PUT
 	 * method.
 	 */
+	@PutMapping("/reminder/{id}")
+	public ResponseEntity<Reminder> updateReminder(@PathVariable int id, @RequestBody Reminder reminder) {
+		Reminder currentReminder = null;
+
+		try {
+			currentReminder = reminderService.getReminderById(id);
+
+			if (currentReminder == null) {
+				System.out.println("Reminder id " + id + " not found");
+				return new ResponseEntity<Reminder>(HttpStatus.NOT_FOUND);
+			}
+			reminder.setReminderCreationDate(new Date());
+			currentReminder = reminderService.updateReminder(reminder, id);
+			if (currentReminder == null)
+				return new ResponseEntity<Reminder>(HttpStatus.UNAUTHORIZED);
+		} catch (ReminderNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return new ResponseEntity<Reminder>(currentReminder, HttpStatus.OK);
+
+	}
 
 	/*
 	 * Define a handler method which will get us the reminders by a userId.
 	 * 
 	 * This handler method should return any one of the status messages basis on
 	 * different situations: 1. 200(OK) - If the reminder found successfully. 2.
-	 * 401(UNAUTHORIZED) -If the user trying to perform the action has not logged
-	 * in.
+	 * 401(UNAUTHORIZED) -If the user trying to perform the action has not
+	 * logged in.
 	 * 
 	 * 
-	 * This handler method should map to the URL "/reminder" using HTTP GET method
+	 * This handler method should map to the URL "/reminder" using HTTP GET
+	 * method
 	 */
+	@GetMapping("/reminder")
+	public ResponseEntity<List<Reminder>> getUser(HttpSession session) {
+		List<Reminder> reminders = null;
+		String userId = (String) session.getAttribute("loggedInUserId");
+		reminders = reminderService.getAllReminderByUserId(userId);
+		if (reminders == null) {
+			return new ResponseEntity<List<Reminder>>(HttpStatus.UNAUTHORIZED);
+		}
 
+		return new ResponseEntity<List<Reminder>>(reminders, HttpStatus.OK);
+	}
 	/*
-	 * Define a handler method which will show details of a specific reminder handle
-	 * ReminderNotFoundException as well. This handler method should return any one
-	 * of the status messages basis on different situations: 1. 200(OK) - If the
-	 * reminder found successfully. 2. 401(UNAUTHORIZED) - If the user trying to
-	 * perform the action has not logged in. 3. 404(NOT FOUND) - If the reminder
-	 * with specified reminderId is not found. This handler method should map to the
-	 * URL "/reminder/{id}" using HTTP GET method where "id" should be replaced by a
-	 * valid reminderId without {}
+	 * Define a handler method which will show details of a specific reminder
+	 * handle ReminderNotFoundException as well. This handler method should
+	 * return any one of the status messages basis on different situations: 1.
+	 * 200(OK) - If the reminder found successfully. 2. 401(UNAUTHORIZED) - If
+	 * the user trying to perform the action has not logged in. 3. 404(NOT
+	 * FOUND) - If the reminder with specified reminderId is not found. This
+	 * handler method should map to the URL "/reminder/{id}" using HTTP GET
+	 * method where "id" should be replaced by a valid reminderId without {}
 	 */
+	@SuppressWarnings("unused")
+	@GetMapping("/reminder/{id}")
+	public ResponseEntity<Reminder> getReminder(@PathVariable("id") int id) {
+
+		Reminder reminder = null;
+		try {
+			reminder = reminderService.getReminderById(id);
+			if (reminder == null) {
+				return new ResponseEntity<Reminder>(HttpStatus.NOT_FOUND);
+			}
+
+			if (reminder == null)
+				return new ResponseEntity<Reminder>(HttpStatus.UNAUTHORIZED);
+		} catch (ReminderNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return new ResponseEntity<Reminder>(reminder, HttpStatus.OK);
+	}
 
 }
